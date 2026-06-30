@@ -1,0 +1,35 @@
+services:
+  # ==========================================
+  # Microservicio: FastAPI + Machine Learning
+  # ==========================================
+  backend:
+    build:
+      context: ./smartprint-backend
+      dockerfile: Dockerfile
+    container_name: smartprint_backend
+    ports:
+      - "8000:8000"
+    restart: always
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+
+  # ==========================================
+  # Interfaz Gráfica: React + Vite + Nginx
+  # ==========================================
+  frontend:
+    build:
+      context: ./smartprint-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+    container_name: smartprint_frontend
+    ports:
+      - "80:80"
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY}
