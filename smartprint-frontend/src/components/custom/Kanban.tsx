@@ -1,43 +1,37 @@
 import { useState } from 'react';
-import { Play, CheckCircle2, Activity } from 'lucide-react';
+import { Play, CheckCircle2, Activity, ArrowLeft, Check } from 'lucide-react';
+
+// Hook personalizado
+import { useKanban } from '@/hooks/useKanban';
 
 // Componentes de shadcn/ui
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-// Tipado rápido para las tareas
-type EstadoTarea = 'pendiente' | 'impresion' | 'finalizado';
-
-interface Tarea {
-  id: string;
-  cliente: string;
-  tipo: string;
-  cantidad: string;
-  estado: EstadoTarea;
-}
-
-// Datos iniciales simulados
-const initialTasks: Tarea[] = [
-  { id: '#2097', cliente: 'Corporación Vega - Tarjetas Corporativas', tipo: 'Imp. Digital', cantidad: '1,000 unidades', estado: 'pendiente' },
-  { id: '#2094', cliente: 'Alicorp - Catálogos de Campaña Regional', tipo: 'Imp. Offset', cantidad: '5,000 Ejemplares', estado: 'impresion' },
-  { id: '#2095', cliente: 'Universidad UTP - Banners Institucionales', tipo: 'Gran Formato', cantidad: '150 unidades', estado: 'finalizado' }
-];
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function Kanban() {
-  const [tareas, setTareas] = useState<Tarea[]>(initialTasks);
+  const { moverTarea, pendientes, enImpresion, finalizadosVisibles, totalFinalizados } = useKanban();
 
-  // Función para mover tareas entre columnas
-  const moverTarea = (id: string, nuevoEstado: EstadoTarea) => {
-    setTareas(tareas.map(tarea =>
-      tarea.id === id ? { ...tarea, estado: nuevoEstado } : tarea
-    ));
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [tareaFinalizar, setTareaFinalizar] = useState<string | null>(null);
+  const [mermaReal, setMermaReal] = useState<string>('');
+
+  const handleOpenDialog = (id: string) => {
+    setTareaFinalizar(id);
+    setMermaReal('');
+    setDialogOpen(true);
   };
 
-  // Filtros rápidos
-  const pendientes = tareas.filter(t => t.estado === 'pendiente');
-  const enImpresion = tareas.filter(t => t.estado === 'impresion');
-  const finalizados = tareas.filter(t => t.estado === 'finalizado');
+  const handleConfirm = () => {
+    if (tareaFinalizar) {
+      moverTarea(tareaFinalizar, 'finalizado', mermaReal ? Number(mermaReal) : 0);
+    }
+    setDialogOpen(false);
+    setTareaFinalizar(null);
+  };
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 w-full h-full">
@@ -64,7 +58,7 @@ export default function Kanban() {
         {/* ==========================================
             COLUMNA 1: PENDIENTES
             ========================================== */}
-        <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 flex flex-col gap-4 min-h-[500px]">
+        <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 flex flex-col gap-4 h-[630px]">
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">1. Pendientes de Asignación</span>
             <Badge variant="secondary" className="bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-md">
@@ -72,7 +66,7 @@ export default function Kanban() {
             </Badge>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-2 pb-2 min-h-0">
             {pendientes.map(tarea => (
               <Card key={tarea.id} className="bg-slate-800 border-slate-700 shadow-md hover:border-cmykCyan transition-colors">
                 <CardContent className="p-4 space-y-3">
@@ -101,7 +95,7 @@ export default function Kanban() {
         {/* ==========================================
             COLUMNA 2: EN MÁQUINA (EJECUCIÓN)
             ========================================== */}
-        <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 flex flex-col gap-4 min-h-[500px]">
+        <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 flex flex-col gap-4 h-[630px]">
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-cmykYellow">2. En Máquina / Ejecución</span>
             <Badge className="bg-cmykYellow/10 text-cmykYellow border-cmykYellow/20 font-bold px-2 py-0.5 rounded-md hover:bg-cmykYellow/20">
@@ -109,7 +103,7 @@ export default function Kanban() {
             </Badge>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-2 pb-2 min-h-0">
             {enImpresion.map(tarea => (
               <Card key={tarea.id} className="bg-slate-800 border-cmykYellow/40 shadow-[0_4px_20px_-10px_rgba(234,179,8,0.3)] relative overflow-hidden">
                 {/* Línea animada de progreso simulado */}
@@ -127,7 +121,7 @@ export default function Kanban() {
                     Cantidad: <span className="text-slate-200 font-medium">{tarea.cantidad}</span>
                   </p>
                   <Button
-                    onClick={() => moverTarea(tarea.id, 'finalizado')}
+                    onClick={() => handleOpenDialog(tarea.id)}
                     className="w-full bg-cmykYellow hover:bg-amber-500 text-slate-900 font-bold text-xs py-5 rounded-xl transition-all mt-2 group shadow-md shadow-cmykYellow/20"
                   >
                     Finalizar Tiraje <CheckCircle2 className="ml-2 h-4 w-4 group-hover:scale-110 transition-transform" />
@@ -141,16 +135,16 @@ export default function Kanban() {
         {/* ==========================================
             COLUMNA 3: POST-PRENSA Y ACABADOS
             ========================================== */}
-        <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 flex flex-col gap-4 min-h-[500px]">
+        <div className="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 flex flex-col gap-4 h-[630px]">
           <div className="flex justify-between items-center border-b border-slate-800 pb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-cmykMagenta">3. Post-prensa y Acabados</span>
             <Badge variant="secondary" className="bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded-md">
-              {finalizados.length}
+              {totalFinalizados > 5 ? `5 de ${totalFinalizados}` : totalFinalizados}
             </Badge>
           </div>
 
-          <div className="flex flex-col gap-3">
-            {finalizados.map(tarea => (
+          <div className="space-y-3 overflow-y-auto  flex-1 pr-2 pb-2 min-h-0">
+            {finalizadosVisibles.map(tarea => (
               <Card key={tarea.id} className="bg-slate-800/80 border-slate-700 shadow-sm opacity-75 grayscale-[20%] transition-all hover:opacity-100 hover:grayscale-0">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
@@ -171,6 +165,51 @@ export default function Kanban() {
         </div>
 
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="border border-slate-300 text-slate-200 sm:max-w-md bg-cmykDark/95 ">
+          <DialogHeader>
+            <DialogTitle className="text-cmykCyan">Reportar Merma Real</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Ingresa la cantidad exacta de unidades dañadas o botadas a la basura para afinar la Inteligencia Artificial a futuro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 py-4">
+            <div className="grid flex-1 gap-2">
+              <Label htmlFor="merma" className="text-slate-400">
+                Merma real (Unidades/Pliegos)
+              </Label>
+              <Input
+                id="merma"
+                type="number"
+                value={mermaReal}
+                onChange={(e) => setMermaReal(e.target.value)}
+                className="bg-slate-800 border-slate-700 text-slate-200"
+                placeholder="Ej. 5"
+              />
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              onClick={() => setDialogOpen(false)}
+            >
+              <ArrowLeft />
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="bg-cmykCyan text-slate-900 font-bold hover:bg-cyan-300"
+              onClick={handleConfirm}
+            >
+              <Check />
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

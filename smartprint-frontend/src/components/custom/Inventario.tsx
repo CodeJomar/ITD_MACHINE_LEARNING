@@ -118,25 +118,28 @@ export default function Inventario() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {materiales.map((mat) => (
+                {materiales.map((mat) => {
+                  const esCritico = mat.stock_actual < 100;
+                  return (
                   <div
                     key={mat.id}
                     onClick={() => cargarInsumo(mat)}
                     className={`p-3 rounded-xl border cursor-pointer transition-all flex justify-between items-center bg-slate-900/50 hover:bg-slate-900
-                      ${mat.estado === 'critico' ? 'border-red-500/50 hover:border-red-500 border-l-4 border-l-red-500' : 'border-slate-700 hover:border-cmykCyan'}`}
+                      ${esCritico ? 'border-red-500/50 hover:border-red-500 border-l-4 border-l-red-500' : 'border-slate-700 hover:border-cmykCyan'}`}
                   >
                     <div>
                       <p className="text-sm font-bold text-slate-200">{mat.nombre}</p>
                       <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-                        Stock: <span className={`font-bold ${mat.estado === 'critico' ? 'text-red-400' : 'text-slate-200'}`}>
+                        Stock: <span className={`font-bold ${esCritico ? 'text-red-400' : 'text-slate-200'}`}>
                           {mat.stock_actual.toLocaleString()} {mat.unidad_medida}
                         </span>
-                        {mat.estado === 'critico' && <AlertTriangle className="h-3 w-3 text-red-400" />}
+                        {esCritico && <AlertTriangle className="h-3 w-3 text-red-400" />}
                       </p>
                     </div>
                     <span className="text-[10px] uppercase font-bold bg-slate-800 text-slate-400 px-2 py-1 rounded border border-slate-700">ID: {mat.id}</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -177,7 +180,9 @@ export default function Inventario() {
                     <Label className="text-xs font-semibold text-slate-400 uppercase">Insumo Crítico Asociado</Label>
                     <Select value={catalogForm.materialId} onValueChange={(value) => setCatalogForm({ ...catalogForm, materialId: value ?? '' })}>
                       <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-slate-200 focus:ring-cmykMagenta rounded-xl px-4 py-5">
-                        <SelectValue placeholder="Vincular con materia prima..." />
+                        <SelectValue placeholder="Vincular con materia prima...">
+                          {materiales.find(m => m.id.toString() === catalogForm.materialId)?.nombre || "Vincular con materia prima..."}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent
                         alignItemWithTrigger={false}
@@ -256,10 +261,10 @@ export default function Inventario() {
                     <div>
                       <p className="text-sm font-bold text-slate-200">{cat.nombre_impresion}</p>
                       <p className="text-[11px] text-slate-400 mt-1">
-                        Regla: Consume <span className="text-cmykCyan font-semibold">{cat.cantidad_base} unidad(es) de {cat.material_nombre}</span>.
+                        Regla: Consume <span className="text-cmykCyan font-semibold">{cat.cantidad_base_regla} unidad(es) de {cat.mermas_materiales?.nombre || 'N/A'}</span>.
                       </p>
                       <p className="text-[11px] text-slate-400">
-                        Tiempo Estandar: <span className="text-cmykYellow font-semibold">{cat.tiempo_estandar} min</span>
+                        Tiempo Estandar: <span className="text-cmykYellow font-semibold">{cat.tiempo_estandar_minutos} min</span>
                       </p>
                     </div>
                   </div>

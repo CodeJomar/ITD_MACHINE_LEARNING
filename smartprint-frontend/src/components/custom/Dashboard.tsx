@@ -26,7 +26,10 @@ export default function Dashboard() {
     isPredicting,
     procesarPedido,
     colaPedidos,
-    chartData
+    chartData,
+    kpiPedidosHoy,
+    kpiEnCola,
+    kpiTerminados
   } = useDashboard();
 
   const isFormValid = ordenForm.cliente !== '' && ordenForm.catalogoId !== '' && Number(ordenForm.cantidad) > 0 && Number(ordenForm.ancho) > 0 && Number(ordenForm.alto) > 0;
@@ -53,19 +56,19 @@ export default function Dashboard() {
             <Card className="bg-slate-800 border-slate-700 shadow-sm">
               <CardContent className="p-4">
                 <p className="text-xs text-slate-400 font-medium uppercase">Pedidos Hoy</p>
-                <p className="text-2xl font-bold mt-1 text-cmykCyan">14</p>
+                <p className="text-2xl font-bold mt-1 text-cmykCyan">{kpiPedidosHoy}</p>
               </CardContent>
             </Card>
             <Card className="bg-slate-800 border-slate-700 shadow-sm">
               <CardContent className="p-4">
                 <p className="text-xs text-slate-400 font-medium uppercase">En Cola</p>
-                <p className="text-2xl font-bold mt-1 text-cmykYellow">5</p>
+                <p className="text-2xl font-bold mt-1 text-cmykYellow">{kpiEnCola}</p>
               </CardContent>
             </Card>
             <Card className="bg-slate-800 border-slate-700 shadow-sm">
               <CardContent className="p-4">
                 <p className="text-xs text-slate-400 font-medium uppercase">Terminados</p>
-                <p className="text-2xl font-bold mt-1 text-cmykMagenta">9</p>
+                <p className="text-2xl font-bold mt-1 text-cmykMagenta">{kpiTerminados}</p>
               </CardContent>
             </Card>
           </div>
@@ -116,7 +119,9 @@ export default function Dashboard() {
                   value={ordenForm.catalogoId}
                   onValueChange={(value) => setOrdenForm({ ...ordenForm, catalogoId: value ?? '' })}>
                   <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-slate-200 focus:ring-cmykCyan rounded-xl px-4 py-5">
-                    <SelectValue placeholder="Seleccione línea..." />
+                    <SelectValue placeholder="Seleccione línea...">
+                      {catalogo.find(c => c.id.toString() === ordenForm.catalogoId)?.nombre_impresion || "Seleccione línea..."}
+                    </SelectValue>
                   </SelectTrigger>
 
                   <SelectContent
@@ -193,12 +198,12 @@ export default function Dashboard() {
                 <Button
                   type="submit"
                   disabled={!canSubmit}
-                  className={`w-full font-bold rounded-xl py-6 ${canSubmit
-                    ? 'bg-gradient-to-r from-cmykCyan to-blue-600 text-slate-900 hover:opacity-90 border-0'
-                    : 'bg-slate-700 text-slate-500 cursor-not-allowed border-0'
+                  className={`w-full rounded-xl py-6 ${canSubmit
+                    ? 'btn-rgb'
+                    : 'bg-slate-700 text-slate-500 cursor-not-allowed border-0 font-bold'
                     }`}
                 >
-                  {isPredicting ? 'Calculando IA...' : 'Predecir y Confirmar Pedido'}
+                  {isPredicting ? 'Calculando IA...' : '✦ Predecir y Confirmar Pedido'}
                 </Button>
               </div>
             </form>

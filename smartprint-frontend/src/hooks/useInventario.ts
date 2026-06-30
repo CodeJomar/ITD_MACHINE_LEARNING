@@ -45,40 +45,71 @@ export function useInventario() {
   // 4. Funciones de guardado
   const guardarInsumo = async (e: React.FormEvent) => {
     e.preventDefault();
-    const estadoCalculado = Number(insumoForm.stock) < 100 ? 'critico' : 'ok';
     const payload = {
       nombre: insumoForm.nombre,
       stock_actual: Number(insumoForm.stock),
-      unidad_medida: insumoForm.unidad,
-      estado: estadoCalculado
+      unidad_medida: insumoForm.unidad
     };
 
-    if (insumoForm.id) await supabase.from('mermas_materiales').update(payload).eq('id', insumoForm.id);
-    else await supabase.from('mermas_materiales').insert([payload]);
+    try {
+      let dbError = null;
+      if (insumoForm.id) {
+        const { error } = await supabase.from('mermas_materiales').update(payload).eq('id', insumoForm.id);
+        dbError = error;
+      } else {
+        const { error } = await supabase.from('mermas_materiales').insert([payload]);
+        dbError = error;
+      }
 
-    setInsumoForm({ id: null, nombre: '', stock: '', unidad: '' });
-    fetchData();
+      if (dbError) throw dbError;
+
+      setInsumoForm({ id: null, nombre: '', stock: '', unidad: '' });
+      fetchData();
+    } catch (error: any) {
+      console.error("Error BD Insumo:", error);
+      alert(`Error al guardar Insumo: ${error.message || JSON.stringify(error)}`);
+    }
   };
 
   const guardarReglaCatalogo = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const materialSeleccionado = materiales.find(m => m.id === Number(catalogForm.materialId));
+    if (!materialSeleccionado || materialSeleccionado.stock_actual <= 0) {
+      alert("No se puede crear una línea de producción. El material seleccionado no tiene stock suficiente.");
+      return;
+    }
+
     const payload = {
       nombre_impresion: catalogForm.nombre,
       material_id: Number(catalogForm.materialId),
-      cantidad_base: Number(catalogForm.cantidadBase),
-      tiempo_estandar: Number(catalogForm.tiempoEstandar)
+      cantidad_base_regla: Number(catalogForm.cantidadBase),
+      tiempo_estandar_minutos: Number(catalogForm.tiempoEstandar)
     };
 
-    if (catalogForm.id) await supabase.from('catalogo_impresion').update(payload).eq('id', catalogForm.id);
-    else await supabase.from('catalogo_impresion').insert([payload]);
+    try {
+      let dbError = null;
+      if (catalogForm.id) {
+        const { error } = await supabase.from('catalogo_impresion').update(payload).eq('id', catalogForm.id);
+        dbError = error;
+      } else {
+        const { error } = await supabase.from('catalogo_impresion').insert([payload]);
+        dbError = error;
+      }
 
-    setCatalogForm({ id: null, nombre: '', materialId: '', cantidadBase: '', tiempoEstandar: '' });
-    fetchData();
+      if (dbError) throw dbError;
+
+      setCatalogForm({ id: null, nombre: '', materialId: '', cantidadBase: '', tiempoEstandar: '' });
+      fetchData();
+    } catch (error: any) {
+      console.error("Error BD Catálogo:", error);
+      alert(`Error al guardar Línea de Producción: ${error.message || JSON.stringify(error)}`);
+    }
   };
 
   // 5. Funciones de carga para edición
   const cargarInsumo = (mat: any) => setInsumoForm({ id: mat.id, nombre: mat.nombre, stock: mat.stock_actual.toString(), unidad: mat.unidad_medida });
-  const cargarCatalogo = (cat: any) => setCatalogForm({ id: cat.id, nombre: cat.nombre_impresion, materialId: cat.material_id.toString(), cantidadBase: cat.cantidad_base.toString(), tiempoEstandar: cat.tiempo_estandar.toString() });
+  const cargarCatalogo = (cat: any) => setCatalogForm({ id: cat.id, nombre: cat.nombre_impresion, materialId: cat.material_id.toString(), cantidadBase: cat.cantidad_base_regla.toString(), tiempoEstandar: cat.tiempo_estandar_minutos.toString() });
 
   // 6. Retornamos todo lo que la UI va a necesitar
   return {
