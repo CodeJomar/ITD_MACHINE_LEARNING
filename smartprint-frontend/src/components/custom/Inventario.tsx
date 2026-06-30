@@ -1,5 +1,7 @@
-import { useState } from 'react';
 import { Package, BookOpen, AlertTriangle, Plus, RefreshCw } from 'lucide-react';
+
+// Hooks personalizados
+import { useInventario } from '@/hooks/useInventario';
 
 // Componentes de shadcn/ui
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,35 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// ----------------------------------------------------------------------
-// DATOS SIMULADOS (MOCK) - Estos vendrán de Supabase mediante FastAPI
-// ----------------------------------------------------------------------
-const mockMateriales = [
-  { id: 1, nombre: 'Papel Couché 150g', stock_actual: 50000, unidad_medida: 'Pliegos', estado: 'ok' },
-  { id: 2, nombre: 'Vinilo Adhesivo Brillo', stock_actual: 120, unidad_medida: 'Metros', estado: 'critico' },
-  { id: 3, nombre: 'Lona Banner Mate 13oz', stock_actual: 800, unidad_medida: 'Metros', estado: 'ok' },
-  { id: 4, nombre: 'Tinta Offset Cyan', stock_actual: 5, unidad_medida: 'Galones', estado: 'critico' },
-];
-
-const mockCatalogo = [
-  { id: 1, nombre_impresion: 'Impresión Offset Masiva', material_id: 1, material_nombre: 'Papel Couché 150g', cantidad_base: 1000, tiempo_estandar: 45 },
-  { id: 2, nombre_impresion: 'Digital Inmediata', material_id: 2, material_nombre: 'Vinilo Adhesivo Brillo', cantidad_base: 1, tiempo_estandar: 10 },
-  { id: 3, nombre_impresion: 'Gigantografía', material_id: 3, material_nombre: 'Lona Banner Mate 13oz', cantidad_base: 1, tiempo_estandar: 30 },
-];
-
 export default function Inventario() {
-  // Estados para los formularios
-  const [insumoForm, setInsumoForm] = useState({ id: null, nombre: '', stock: '', unidad: '' });
-  const [catalogForm, setCatalogForm] = useState({ id: null, nombre: '', materialId: '', cantidadBase: '', tiempoEstandar: '' });
-
-  // Funciones para cargar datos a los formularios al hacer clic (Simula un "Editar")
-  const cargarInsumo = (mat: any) => {
-    setInsumoForm({ id: mat.id, nombre: mat.nombre, stock: mat.stock_actual.toString(), unidad: mat.unidad_medida });
-  };
-
-  const cargarCatalogo = (cat: any) => {
-    setCatalogForm({ id: cat.id, nombre: cat.nombre_impresion, materialId: cat.material_id.toString(), cantidadBase: cat.cantidad_base.toString(), tiempoEstandar: cat.tiempo_estandar.toString() });
-  };
+  const {
+    materiales, catalogo, isLoading,
+    insumoForm, setInsumoForm,
+    catalogForm, setCatalogForm,
+    guardarInsumo, guardarReglaCatalogo,
+    cargarInsumo, cargarCatalogo
+  } = useInventario();
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500 w-full">
@@ -77,7 +58,7 @@ export default function Inventario() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form className="space-y-4" onSubmit={guardarInsumo}>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-400 uppercase">Nombre del Material</Label>
                   <Input
@@ -137,7 +118,7 @@ export default function Inventario() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {mockMateriales.map((mat) => (
+                {materiales.map((mat) => (
                   <div
                     key={mat.id}
                     onClick={() => cargarInsumo(mat)}
@@ -179,7 +160,7 @@ export default function Inventario() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <form className="space-y-4" onSubmit={guardarReglaCatalogo}>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -204,7 +185,7 @@ export default function Inventario() {
                         sideOffset={8}
                         className="bg-slate-800 border border-white/10 text-slate-200 shadow-[0_18px_35px_-18px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.12)] ring-1 ring-white/15 rounded-xl z-50 min-w-[var(--anchor-width)]"
                       >
-                        {mockMateriales.map(mat => (
+                        {materiales.map(mat => (
                           <SelectItem key={mat.id} value={mat.id.toString()} className="focus:bg-slate-700 focus:text-slate-100 cursor-pointer py-2.5">
                             {mat.nombre} <span className="text-slate-500 ml-2">({mat.stock_actual} en stock)</span>
                           </SelectItem>
@@ -266,7 +247,7 @@ export default function Inventario() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {mockCatalogo.map((cat) => (
+                {catalogo.map((cat) => (
                   <div
                     key={cat.id}
                     onClick={() => cargarCatalogo(cat)}
