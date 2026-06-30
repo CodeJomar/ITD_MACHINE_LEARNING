@@ -143,7 +143,7 @@ export default function Kanban() {
             </Badge>
           </div>
 
-          <div className="space-y-3 overflow-y-auto  flex-1 pr-2 pb-2 min-h-0">
+          <div className="space-y-3 overflow-y-auto custom-scrollbar flex-1 pr-2 pb-2 min-h-0">
             {finalizadosVisibles.map(tarea => (
               <Card key={tarea.id} className="bg-slate-800/80 border-slate-700 shadow-sm opacity-75 grayscale-[20%] transition-all hover:opacity-100 hover:grayscale-0">
                 <CardContent className="p-4 space-y-3">
