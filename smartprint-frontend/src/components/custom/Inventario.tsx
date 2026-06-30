@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Package, BookOpen, AlertTriangle, Plus, RefreshCw } from 'lucide-react';
 
 // Hooks personalizados

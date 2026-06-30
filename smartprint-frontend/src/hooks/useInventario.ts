@@ -20,7 +20,7 @@ export function useInventario() {
     setIsLoading(true);
     try {
       const { data: dataMateriales, error: errMat } = await supabase
-        .from('inventario_materiales')
+        .from('mermas_materiales')
         .select('*')
         .order('id', { ascending: true });
 
@@ -28,8 +28,8 @@ export function useInventario() {
       else setMateriales(dataMateriales || []);
 
       const { data: dataCatalogo, error: errCat } = await supabase
-        .from('catalogo_servicios')
-        .select('*, inventario_materiales(nombre)')
+        .from('catalogo_impresion')
+        .select('*, mermas_materiales(nombre)')
         .order('id', { ascending: true });
 
       if (errCat) console.error("Error cargando catálogo:", errCat);
@@ -53,8 +53,8 @@ export function useInventario() {
       estado: estadoCalculado
     };
 
-    if (insumoForm.id) await supabase.from('inventario_materiales').update(payload).eq('id', insumoForm.id);
-    else await supabase.from('inventario_materiales').insert([payload]);
+    if (insumoForm.id) await supabase.from('mermas_materiales').update(payload).eq('id', insumoForm.id);
+    else await supabase.from('mermas_materiales').insert([payload]);
 
     setInsumoForm({ id: null, nombre: '', stock: '', unidad: '' });
     fetchData();
@@ -69,8 +69,8 @@ export function useInventario() {
       tiempo_estandar: Number(catalogForm.tiempoEstandar)
     };
 
-    if (catalogForm.id) await supabase.from('catalogo_servicios').update(payload).eq('id', catalogForm.id);
-    else await supabase.from('catalogo_servicios').insert([payload]);
+    if (catalogForm.id) await supabase.from('catalogo_impresion').update(payload).eq('id', catalogForm.id);
+    else await supabase.from('catalogo_impresion').insert([payload]);
 
     setCatalogForm({ id: null, nombre: '', materialId: '', cantidadBase: '', tiempoEstandar: '' });
     fetchData();

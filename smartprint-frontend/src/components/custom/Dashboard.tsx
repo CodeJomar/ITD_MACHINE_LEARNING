@@ -1,5 +1,7 @@
-import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+
+// Hooks personalizados
+import { useDashboard } from '@/hooks/useDashboard';
 
 // Componentes de shadcn/ui
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,37 +17,24 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-const mockChartData = [
-  { name: 'Pre-prensa', Tiempo: 25 },
-  { name: 'Impresión', Tiempo: 45 },
-  { name: 'Acabados', Tiempo: 15 },
-  { name: 'Despacho', Tiempo: 10 },
-];
-
-const colaPedidos = [
-  { id: '#2098', cliente: 'Universidad UTP', tipo: 'Banners', cantidad: 150, ancho: 120, alto: 200, tiempoEstimado: '45 min', merma: '5%', estado: 'Planificación' },
-  { id: '#2099', cliente: 'Entel', tipo: 'Afiches Digital', cantidad: 2000, ancho: 50, alto: 70, tiempoEstimado: '1h 15m', merma: '2%', estado: 'Recepción' },
-  { id: '#2100', cliente: 'Ministerio de Salud', tipo: 'Flyers Offset', cantidad: 15000, ancho: 10, alto: 15, tiempoEstimado: '3h 30m', merma: '8%', estado: 'Pendiente' },
-  { id: '#2101', cliente: 'InkaFarma', tipo: 'Catálogos', cantidad: 5000, ancho: 21, alto: 29.7, tiempoEstimado: '2h 10m', merma: '3%', estado: 'Pre-prensa' },
-];
-
-type DashboardForm = {
-  cliente: string;
-  tipo: string;
-  cantidad: string;
-  ancho: string;
-  alto: string;
-};
-
 export default function Dashboard() {
-  const [form, setForm] = useState<DashboardForm>({ cliente: '', tipo: '', cantidad: '', ancho: '', alto: '' });
 
-  const isFormValid = form.cliente !== '' && form.tipo !== '' && Number(form.cantidad) > 0 && Number(form.ancho) > 0 && Number(form.alto) > 0;
-  const isStockValid = Number(form.cantidad) <= 15000;
-  const canSubmit = isFormValid && isStockValid;
+  const {
+    catalogo,
+    ordenForm,
+    setOrdenForm,
+    isPredicting,
+    procesarPedido,
+    colaPedidos,
+    chartData
+  } = useDashboard();
+
+  const isFormValid = ordenForm.cliente !== '' && ordenForm.catalogoId !== '' && Number(ordenForm.cantidad) > 0 && Number(ordenForm.ancho) > 0 && Number(ordenForm.alto) > 0;
+  const isStockValid = Number(ordenForm.cantidad) <= 15000;
+  const canSubmit = isFormValid && isStockValid && !isPredicting;
 
   const limpiarFormulario = () => {
-    setForm({ cliente: '', tipo: '', cantidad: '', ancho: '', alto: '' });
+    setOrdenForm({ cliente: '', catalogoId: '', materialId: '', cantidad: '', ancho: '', alto: '' });
   };
 
   return (
@@ -89,7 +78,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="h-full min-h-[250px] w-full relative pb-6">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 12 }} axisLine={false} />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} axisLine={false} />
                   <Tooltip
@@ -109,13 +98,13 @@ export default function Dashboard() {
             <CardTitle className="text-lg text-slate-100">Recepción de Pedidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-4" onSubmit={procesarPedido}>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-400 uppercase">Nombre del Cliente</Label>
                 <Input
-                  value={form.cliente}
-                  onChange={e => setForm({ ...form, cliente: e.target.value })}
+                  value={ordenForm.cliente}
+                  onChange={e => setOrdenForm({ ...ordenForm, cliente: e.target.value })}
                   className="bg-slate-900 border-slate-700 text-slate-200 focus-visible:ring-cmykCyan rounded-xl px-4 py-5"
                   placeholder="Ej. Corporación Vega"
                 />
@@ -123,27 +112,24 @@ export default function Dashboard() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-400 uppercase">Tipo de Impresión</Label>
-                <Select value={form.tipo} onValueChange={(value) => setForm({ ...form, tipo: value ?? '' })}>
+                <Select
+                  value={ordenForm.catalogoId}
+                  onValueChange={(value) => setOrdenForm({ ...ordenForm, catalogoId: value ?? '' })}>
                   <SelectTrigger className="w-full bg-slate-900 border-slate-700 text-slate-200 focus:ring-cmykCyan rounded-xl px-4 py-5">
                     <SelectValue placeholder="Seleccione línea..." />
                   </SelectTrigger>
 
-                  {/* La solución para Base UI: alignItemWithTrigger en false y side en bottom */}
                   <SelectContent
                     alignItemWithTrigger={false}
                     side="bottom"
                     sideOffset={8}
                     className="bg-slate-800 border border-white/10 text-slate-200 shadow-[0_18px_35px_-18px_rgba(255,255,255,0.35),0_0_0_1px_rgba(255,255,255,0.12)] ring-1 ring-white/15 rounded-xl z-50 min-w-[var(--anchor-width)]"
                   >
-                    <SelectItem value="offset" className="focus:bg-slate-700 focus:text-slate-100 cursor-pointer py-2.5">
-                      Impresión Offset Masiva
-                    </SelectItem>
-                    <SelectItem value="digital" className="focus:bg-slate-700 focus:text-slate-100 cursor-pointer py-2.5">
-                      Digital Inmediata
-                    </SelectItem>
-                    <SelectItem value="banners" className="focus:bg-slate-700 focus:text-slate-100 cursor-pointer py-2.5">
-                      Gran Formato / Publicidad
-                    </SelectItem>
+                    {catalogo.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id.toString()} className="focus:bg-slate-700 focus:text-slate-100 cursor-pointer py-2.5">
+                        {cat.nombre_impresion}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -152,8 +138,8 @@ export default function Dashboard() {
                 <Label className="text-xs font-semibold text-slate-400 uppercase">Volumen de Lote</Label>
                 <Input
                   type="number"
-                  value={form.cantidad}
-                  onChange={e => setForm({ ...form, cantidad: e.target.value })}
+                  value={ordenForm.cantidad}
+                  onChange={e => setOrdenForm({ ...ordenForm, cantidad: e.target.value })}
                   className="bg-slate-900 border-slate-700 text-slate-200 focus-visible:ring-cmykCyan rounded-xl px-4 py-5"
                   placeholder="Ej. 5000"
                 />
@@ -164,8 +150,8 @@ export default function Dashboard() {
                   <Label className="text-xs font-semibold text-slate-400 uppercase">Ancho (cm)</Label>
                   <Input
                     type="number"
-                    value={form.ancho}
-                    onChange={e => setForm({ ...form, ancho: e.target.value })}
+                    value={ordenForm.ancho}
+                    onChange={e => setOrdenForm({ ...ordenForm, ancho: e.target.value })}
                     className="bg-slate-900 border-slate-700 text-slate-200 focus-visible:ring-cmykCyan rounded-xl px-4 py-5"
                     placeholder="0"
                   />
@@ -174,8 +160,8 @@ export default function Dashboard() {
                   <Label className="text-xs font-semibold text-slate-400 uppercase">Alto (cm)</Label>
                   <Input
                     type="number"
-                    value={form.alto}
-                    onChange={e => setForm({ ...form, alto: e.target.value })}
+                    value={ordenForm.alto}
+                    onChange={e => setOrdenForm({ ...ordenForm, alto: e.target.value })}
                     className="bg-slate-900 border-slate-700 text-slate-200 focus-visible:ring-cmykCyan rounded-xl px-4 py-5"
                     placeholder="0"
                   />
@@ -212,7 +198,7 @@ export default function Dashboard() {
                     : 'bg-slate-700 text-slate-500 cursor-not-allowed border-0'
                     }`}
                 >
-                  Predecir y Confirmar Pedido
+                  {isPredicting ? 'Calculando IA...' : 'Predecir y Confirmar Pedido'}
                 </Button>
               </div>
             </form>
