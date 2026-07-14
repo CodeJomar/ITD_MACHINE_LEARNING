@@ -12,3 +12,16 @@ class PrediccionResponseDTO(BaseModel):
     tiempo_estimado_minutos: float
     nivel_riesgo: str
     detalles: PedidoInputDTO
+
+class RiskPredictionResponseDTO(BaseModel):
+    riesgo_valor: int
+    riesgo_label: str
+
+class InventoryDemandRequest(BaseModel):
+    pedidos_esperados_mes: int
+    promedio_tiraje_mensual: int
+    es_campana_alta: int  # 0 o 1
+
+class InventoryDemandResponse(BaseModel):
+    proyeccion_tinta_litros: float
+    mensaje: str
