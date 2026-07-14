@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, CheckCircle2, Activity, ArrowLeft, Check } from 'lucide-react';
+import { Play, CheckCircle2, Activity, ArrowLeft, Check, TriangleAlert } from 'lucide-react';
 
 // Hook personalizado
 import { useKanban } from '@/hooks/useKanban';
@@ -80,6 +80,15 @@ export default function Kanban() {
                   <p className="text-xs text-slate-400">
                     Cantidad: <span className="text-slate-200 font-medium">{tarea.cantidad}</span>
                   </p>
+                  <Badge
+                    className={`text-[10px] font-bold border mt-1 ${
+                      tarea.criticidad.includes('Alto')
+                        ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    }`}
+                  >
+                    {tarea.criticidad.includes('Alto') ? <TriangleAlert className="h-3 w-3" /> : <Check className="h-3 w-3" />} {tarea.criticidad.includes('Alto') ? 'Alto Riesgo' :  'Controlado'}
+                  </Badge>
                   <Button
                     onClick={() => moverTarea(tarea.id, 'impresion')}
                     className="w-full bg-slate-700 hover:bg-cmykCyan hover:text-slate-900 text-slate-300 font-bold text-xs py-5 rounded-xl transition-all mt-2 group"
@@ -120,6 +129,15 @@ export default function Kanban() {
                   <p className="text-xs text-slate-400">
                     Cantidad: <span className="text-slate-200 font-medium">{tarea.cantidad}</span>
                   </p>
+                  <Badge
+                    className={`text-[10px] font-bold border mt-1 ${
+                      tarea.criticidad.includes('Alto')
+                        ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    }`}
+                  >
+                    {tarea.criticidad.includes('Alto') ? <TriangleAlert className="h-3 w-3" /> : <Check className="h-3 w-3" />} {tarea.criticidad.includes('Alto') ? 'Alto Riesgo' : 'Controlado'}
+                  </Badge>
                   <Button
                     onClick={() => handleOpenDialog(tarea.id)}
                     className="w-full bg-cmykYellow hover:bg-amber-500 text-slate-900 font-bold text-xs py-5 rounded-xl transition-all mt-2 group shadow-md shadow-cmykYellow/20"

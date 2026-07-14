@@ -7,6 +7,14 @@ export function useDashboard() {
   const [isPredicting, setIsPredicting] = useState(false);
   const [prediccionMinutos, setPrediccionMinutos] = useState<number | null>(null);
 
+  // Estados para el Dialog de resultado IA
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [resultadoIA, setResultadoIA] = useState<{
+    tiempo: number;
+    merma: number;
+    criticidad: string;
+  } | null>(null);
+
   // KPIs dinámicos calculados desde la BD
   const [kpiPedidosHoy, setKpiPedidosHoy] = useState(0);
   const [kpiEnCola, setKpiEnCola] = useState(0);
@@ -44,7 +52,7 @@ export function useDashboard() {
       // 3. Calcular KPIs dinámicos desde los datos reales
       const hoy = new Date().toISOString().slice(0, 10);
       setKpiPedidosHoy(dataColas.filter(p => p.created_at?.slice(0, 10) === hoy).length);
-      setKpiEnCola(dataColas.filter(p => ['PENDIENTE', 'PRE_PRENSA', 'IMPRESION'].includes(p.estado_proceso)).length);
+      setKpiEnCola(dataColas.filter(p => ['PENDIENTE', 'PRE_PRENSA'].includes(p.estado_proceso)).length);
       setKpiTerminados(dataColas.filter(p => p.estado_proceso === 'FINALIZADO').length);
 
       // 4. Solo mostramos pedidos activos/próximos en las tarjetas del Dashboard
@@ -59,7 +67,8 @@ export function useDashboard() {
           alto: pedido.alto_cm,
           tiempoEstimado: `${pedido.tiempo_estimado_minutos} min`,
           merma: `${pedido.merma_estimada_unidades} und`,
-          estado: pedido.estado_proceso
+          estado: pedido.estado_proceso,
+          criticidad: pedido.criticidad || 'Desconocido'
         }));
       setColaPedidos(pedidosActivos);
 
@@ -90,29 +99,41 @@ export function useDashboard() {
       const nombreCatalogo = tipoCatalogo ? tipoCatalogo.nombre_impresion : "Desconocido";
       const nombreMaterial = tipoMaterial ? tipoMaterial.nombre : "Desconocido";
 
-      // A. Llamada a la IA (FastAPI) con los nombres de texto correctos
-      const iaResponse = await fetch('http://localhost:8000/api/predecir-tiempo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tipo_impresion: nombreCatalogo,
-          ancho_cm: Number(ordenForm.ancho),
-          alto_cm: Number(ordenForm.alto),
-          cantidad: Number(ordenForm.cantidad),
-          material: nombreMaterial
+      // A. Llamadas paralelas a los DOS modelos de IA (Objetivo 1 + Objetivo 2)
+      const payloadIA = {
+        tipo_impresion: nombreCatalogo,
+        ancho_cm: Number(ordenForm.ancho),
+        alto_cm: Number(ordenForm.alto),
+        cantidad: Number(ordenForm.cantidad),
+        material: nombreMaterial
+      };
+
+      const [iaResponse, riesgoResponse] = await Promise.all([
+        fetch('http://localhost:8000/api/predecir-tiempo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadIA)
+        }),
+        fetch('http://localhost:8000/api/predecir-riesgo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadIA)
         })
-      });
+      ]);
 
       const iaResult = await iaResponse.json();
+      const riesgoResult = await riesgoResponse.json();
+
       const tiempoEstimado = Math.round(iaResult.tiempo_estimado_minutos);
       const mermaEstimada = Math.round(iaResult.merma_estimada_unidades || Math.floor(Number(ordenForm.cantidad) * 0.05));
+      const criticidadLabel = riesgoResult.riesgo_label || 'Desconocido';
 
       setPrediccionMinutos(tiempoEstimado);
 
       const fechaActual = new Date();
       const fechaCompromiso = new Date(fechaActual.getTime() + tiempoEstimado * 60000).toISOString();
 
-      // B. Guardar en Supabase
+      // B. Guardar en Supabase (incluyendo la criticidad del Objetivo 2)
       const { error: dbError } = await supabase.from('colas_produccion').insert([{
         cliente_name: ordenForm.cliente,
         catalogo_id: Number(ordenForm.catalogoId),
@@ -123,7 +144,8 @@ export function useDashboard() {
         tiempo_estimado_minutos: tiempoEstimado,
         merma_estimada_unidades: mermaEstimada,
         fecha_compromiso: fechaCompromiso,
-        estado_proceso: 'PENDIENTE'
+        estado_proceso: 'PENDIENTE',
+        criticidad: criticidadLabel
       }]);
 
       if (dbError) {
@@ -131,7 +153,9 @@ export function useDashboard() {
         throw new Error("No se pudo guardar el pedido en la BD (verifica consola).");
       }
 
-      alert(`¡Pedido procesado! Tiempo: ${tiempoEstimado} mins | Merma est: ${mermaEstimada} unds.`);
+      // C. Mostrar resultado en el Dialog profesional (reemplaza el alert nativo)
+      setResultadoIA({ tiempo: tiempoEstimado, merma: mermaEstimada, criticidad: criticidadLabel });
+      setDialogOpen(true);
 
       setOrdenForm({ cliente: '', catalogoId: '', materialId: '', cantidad: '', ancho: '', alto: '' });
       fetchData(); // Recargamos la tabla automáticamente
@@ -148,6 +172,7 @@ export function useDashboard() {
     materiales, catalogo, ordenForm, setOrdenForm,
     isPredicting, prediccionMinutos, procesarPedido,
     colaPedidos, chartData,
-    kpiPedidosHoy, kpiEnCola, kpiTerminados
+    kpiPedidosHoy, kpiEnCola, kpiTerminados,
+    dialogOpen, setDialogOpen, resultadoIA
   };
 }

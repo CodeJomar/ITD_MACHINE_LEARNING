@@ -1,4 +1,5 @@
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Clock, Leaf, ShieldAlert, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
 
 // Hooks personalizados
 import { useDashboard } from '@/hooks/useDashboard';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -29,7 +31,8 @@ export default function Dashboard() {
     chartData,
     kpiPedidosHoy,
     kpiEnCola,
-    kpiTerminados
+    kpiTerminados,
+    dialogOpen, setDialogOpen, resultadoIA
   } = useDashboard();
 
   const isFormValid = ordenForm.cliente !== '' && ordenForm.catalogoId !== '' && Number(ordenForm.cantidad) > 0 && Number(ordenForm.ancho) > 0 && Number(ordenForm.alto) > 0;
@@ -81,15 +84,16 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="h-full min-h-[250px] w-full relative pb-6">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 12 }} axisLine={false} />
                   <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} axisLine={false} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1E293B', borderColor: '#334155', color: '#f8fafc', borderRadius: '8px' }}
                     itemStyle={{ color: '#06B6D4' }}
+                    cursor={{ fill: '#334155', opacity: 0.4 }}
                   />
-                  <Line type="monotone" dataKey="Tiempo" stroke="#06B6D4" strokeWidth={3} dot={{ r: 5, fill: '#06B6D4', strokeWidth: 2, stroke: '#0F172A' }} />
-                </LineChart>
+                  <Bar dataKey="Tiempo" fill="#06B6D4" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -247,7 +251,15 @@ export default function Dashboard() {
                 </div>
                 <div className="flex justify-between items-center text-xs mt-3">
                   <span className="text-slate-400">Merma IA: <span className="text-cmykYellow font-semibold">{pedido.merma}</span></span>
-                  <Badge variant="outline" className="bg-slate-800 text-slate-300 border-slate-700 font-normal">{pedido.estado}</Badge>
+                  <Badge
+                    className={`text-[10px] font-bold border ${
+                      pedido.criticidad.includes('Alto')
+                        ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    }`}
+                  >
+                    {pedido.criticidad.includes('Alto') ? <><AlertTriangle className="h-3 w-3 inline" /> Alto Riesgo</> : <><CheckCircle2 className="h-3 w-3 inline" /> Controlado</>}
+                  </Badge>
                 </div>
               </div>
 
@@ -255,6 +267,78 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+      {/* ==========================================
+          DIALOG: RESULTADO DE PREDICCIÓN IA
+          ========================================== */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="border border-slate-700 text-slate-200 sm:max-w-md bg-cmykDark/95">
+          <DialogHeader>
+            <DialogTitle className="text-cmykCyan text-lg flex items-center gap-2"><Sparkles className="h-5 w-5" /> Predicción de Inteligencia Artificial</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Resultado generado por los modelos de Machine Learning (Random Forest + Regresión Logística).
+            </DialogDescription>
+          </DialogHeader>
+
+          {resultadoIA && (
+            <div className="space-y-4 py-4">
+              {/* Tiempo Estimado */}
+              <div className="flex items-center gap-4 bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+                <div className="bg-cmykCyan/10 p-2.5 rounded-lg">
+                  <Clock className="h-5 w-5 text-cmykCyan" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-400 uppercase font-semibold tracking-wide">Tiempo Estimado</p>
+                  <p className="text-xl font-bold text-slate-100">{resultadoIA.tiempo} <span className="text-sm font-normal text-slate-400">minutos</span></p>
+                </div>
+              </div>
+
+              {/* Merma Estimada */}
+              <div className="flex items-center gap-4 bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+                <div className="bg-cmykYellow/10 p-2.5 rounded-lg">
+                  <Leaf className="h-5 w-5 text-cmykYellow" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-400 uppercase font-semibold tracking-wide">Merma Estimada</p>
+                  <p className="text-xl font-bold text-slate-100">{resultadoIA.merma} <span className="text-sm font-normal text-slate-400">unidades</span></p>
+                </div>
+              </div>
+
+              {/* Criticidad */}
+              <div className={`flex items-center gap-4 p-4 rounded-xl border ${
+                resultadoIA.criticidad.includes('Alto')
+                  ? 'bg-red-500/5 border-red-500/30'
+                  : 'bg-emerald-500/5 border-emerald-500/30'
+              }`}>
+                <div className={`p-2.5 rounded-lg ${
+                  resultadoIA.criticidad.includes('Alto')
+                    ? 'bg-red-500/10'
+                    : 'bg-emerald-500/10'
+                }`}>
+                  <ShieldAlert className={`h-5 w-5 ${
+                    resultadoIA.criticidad.includes('Alto') ? 'text-red-400' : 'text-emerald-400'
+                  }`} />
+                </div>
+                <div>
+                  <p className="text-[11px] text-slate-400 uppercase font-semibold tracking-wide">Nivel de Criticidad</p>
+                  <p className={`text-lg font-bold ${
+                    resultadoIA.criticidad.includes('Alto') ? 'text-red-400' : 'text-emerald-400'
+                  }`}>{resultadoIA.criticidad}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              className="bg-cmykCyan text-slate-900 font-bold hover:bg-cyan-300 w-full sm:w-auto"
+              onClick={() => setDialogOpen(false)}
+            >
+              Entendido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

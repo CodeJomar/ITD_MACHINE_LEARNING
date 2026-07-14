@@ -11,6 +11,7 @@ export interface Tarea {
   tipo: string;
   cantidad: string;
   estado: EstadoTarea;
+  criticidad: string;
 }
 
 // Mapa de estados BD → Kanban
@@ -56,7 +57,8 @@ export function useKanban() {
         cliente: p.cliente_name,
         tipo: p.catalogo_impresion?.nombre_impresion || 'Impresión',
         cantidad: `${p.cantidad_tiraje.toLocaleString()} unidades`,
-        estado: mapEstadoBD(p.estado_proceso)
+        estado: mapEstadoBD(p.estado_proceso),
+        criticidad: p.criticidad || 'Desconocido'
       })));
     }
   };
