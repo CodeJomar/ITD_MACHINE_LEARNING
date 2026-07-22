@@ -35,8 +35,9 @@ class PredictionService:
     def ejecutar_prediccion_riesgo(pedido: PedidoInputDTO) -> dict:
         modelo_riesgo = MLLoader.obtener_modelo_riesgo()
         columnas_riesgo = MLLoader.obtener_columnas_riesgo()
+        scaler_riesgo = MLLoader.obtener_scaler_riesgo()
 
-        if not modelo_riesgo or not columnas_riesgo:
+        if not modelo_riesgo or not columnas_riesgo or not scaler_riesgo:
             raise HTTPException(status_code=500, detail="El motor de Riesgo (Clasificación) no está operativo.")
 
         try:
@@ -47,8 +48,11 @@ class PredictionService:
             df_entrada = pd.get_dummies(df_entrada)
             df_final = df_entrada.reindex(columns=columnas_riesgo, fill_value=0)
             
-            prediccion = int(modelo_riesgo.predict(df_final)[0])
-            label = "Alto Riesgo 🔴" if prediccion == 1 else "Riesgo Controlado 🟢"
+            # FIX: Aplicar la misma normalización que se usó en entrenamiento
+            df_scaled = scaler_riesgo.transform(df_final)
+            
+            prediccion = int(modelo_riesgo.predict(df_scaled)[0])
+            label = "Alto Riesgo" if prediccion == 1 else "Riesgo Controlado"
 
             return {
                 "riesgo_valor": prediccion,
